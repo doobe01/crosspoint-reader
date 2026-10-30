@@ -344,6 +344,8 @@ Settings are grouped into **System**, **Display**, **Reader**, **Controls**, **L
 
 - **OPDS Servers**: Manage one or more OPDS [(Open Publication Distribution System)](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System) libraries for browsing and downloading books. See [OPDS Servers (Multiple Libraries)](#365-opds-servers-multiple-libraries) below.
 
+- **Reading Statistics** (**Settings → Reader**): Shows time read today, in the last 7 days, your reading streak, all-time totals (time, pages turned, sessions, average time per page), and the time, pages, and sessions for the most recently opened book. Time on a page counts when it stays on screen for at least 2 seconds and you then turn forward (at most 30 minutes per page). Time before a backward turn, and the last page before you close the book, is not counted. Sessions under 10 seconds are ignored, and a session is credited to the day it ends. Totals are kept without a clock; Today, Last 7 Days, and Reading Streak need the device clock, which is set from an RTC or Wi-Fi time sync. On a device without an RTC, time resumes from the last known value after a full power-off, so those three rows can lag until the next Wi-Fi sync. The screen also has a **Reset Statistics** action. Records live in `/.crosspoint/stats/` on the SD card and are not touched by Clear Reading Cache.
+
 - **Clear Reading Cache** (**Settings → Reader**): Clear the internal SD card cache.
 
 - **Use book metadata**: Read the title and author stored inside each book when the Library index is rebuilt. When disabled or unavailable, the Library uses the filename.

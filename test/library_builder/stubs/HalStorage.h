@@ -239,6 +239,19 @@ class HalStorage {
     return openFileForWrite(module, path.c_str(), file);
   }
   bool remove(const char* path) { return fake::files.erase(path) != 0; }
+  bool replaceFile(const char* tmpPath, const char* path) {
+    fake::files.erase(path);
+    return rename(tmpPath, path);
+  }
+  bool removeDir(const char* path) {
+    const auto dir = fake::files.find(path);
+    if (dir == fake::files.end() || !dir->second->directory) return false;
+    const std::string prefix = std::string(path) + "/";
+    for (auto it = fake::files.begin(); it != fake::files.end();) {
+      it = (it->first == path || it->first.starts_with(prefix)) ? fake::files.erase(it) : std::next(it);
+    }
+    return true;
+  }
   bool rename(const char* from, const char* to) {
     if (fake::fail(fake::failRename) || !exists(from) || exists(to)) return false;
     std::vector<std::pair<std::string, std::shared_ptr<fake::Node>>> moved;

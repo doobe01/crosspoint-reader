@@ -757,3 +757,44 @@ Book moves rename the store and its `.deleted` journal (plus recovery sidecars)
 together. The stored source path is informational and is refreshed on the next
 save; the current file path selects the store. Local book deletion cleans up all
 of these sidecars but preserves the independent `My Clippings.txt` export.
+
+## Reading statistics (`.crosspoint/stats/`)
+
+Written by `src/ReadingStatsStore.cpp` once per reading session with at least
+10 counted seconds, when the reader exits, the device sleeps, or KOReader sync
+is opened. Each file is one version byte followed by the record struct written
+as-is: all fields are little-endian `u32`, so there is no padding.
+
+### `totals.bin` (version 1)
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| version | u8 | `1` |
+| seconds | u32 | all-time counted reading seconds |
+| turns | u32 | all-time qualified forward page turns |
+| sessions | u32 | number of recorded sessions |
+| latestDay | u32 | newest local civil day (days since 1970-01-01) in the ring; `0` = empty |
+| daySeconds | u32 × 56 | ring of seconds per day, slot `day % 56`, valid for `(latestDay - 56, latestDay]` |
+
+A session recorded without a trusted clock adds to the three totals but to no
+day slot.
+A day older than the ring (56 or more days before `latestDay`) restarts the
+ring from that day, since a trusted clock never steps back that far; this
+recovers from a corrupt `latestDay` at the cost of the per-day history.
+
+### `books/<document id>.bin` (version 1)
+
+`<document id>` is the 32-character KOReader partial-MD5 of the book file, so
+a renamed or moved book keeps its record.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| version | u8 | `1` |
+| seconds | u32 | counted reading seconds in this book |
+| turns | u32 | qualified forward page turns |
+| sessions | u32 | recorded sessions |
+
+Both files are written to a `.tmp` sibling, closed, and only then moved over
+the old file with `Storage.replaceFile`, so an interrupted write never leaves a
+torn record; at worst the record reads as missing. Reset Statistics removes the
+whole `stats/` directory.

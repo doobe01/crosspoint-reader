@@ -1,6 +1,7 @@
 #include "ReaderSession.h"
 
 #include <algorithm>
+#include <cstdint>
 
 namespace {
 constexpr uint32_t MIN_DWELL_SECONDS = 2;
@@ -15,17 +16,21 @@ void ReaderSession::noteTurn(const bool forward, const bool succeeded) { pending
 
 void ReaderSession::onRenderComplete(const uint32_t monotonicMs, const int64_t trustedEpoch, const int progressBp) {
   const uint16_t progress = clampProgress(progressBp);
-  if (pendingForward && hasAnchor && anchorEpoch > 0) {
+  if (pendingForward && hasAnchor) {
     const uint32_t elapsedSeconds = (monotonicMs - anchorMs) / 1000;
     if (elapsedSeconds >= MIN_DWELL_SECONDS) {
       const uint32_t contribution = std::min(elapsedSeconds, MAX_DWELL_SECONDS);
-      if (duration == 0) {
-        startEpoch = anchorEpoch;
-        startProgress = anchorProgress;
-        endProgress = anchorProgress;
+      activeTotal += contribution;
+      if (turns < UINT16_MAX) turns++;
+      if (anchorEpoch > 0) {
+        if (duration == 0) {
+          startEpoch = anchorEpoch;
+          startProgress = anchorProgress;
+          endProgress = anchorProgress;
+        }
+        duration += contribution;
+        endProgress = std::max(endProgress, progress);
       }
-      duration += contribution;
-      endProgress = std::max(endProgress, progress);
     }
   }
 
@@ -41,6 +46,8 @@ void ReaderSession::reset() {
   anchorEpoch = 0;
   startEpoch = 0;
   duration = 0;
+  activeTotal = 0;
+  turns = 0;
   anchorProgress = 0;
   startProgress = 0;
   endProgress = 0;

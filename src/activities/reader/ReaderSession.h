@@ -16,14 +16,21 @@ class ReaderSession {
   uint32_t durationSeconds() const { return duration; }
   uint16_t startProgressBp() const { return startProgress; }
   uint16_t endProgressBp() const { return endProgress; }
+  // Counted dwell time and qualified forward turns, kept even when the wall
+  // clock is untrusted. On-device statistics use these; the plugin event
+  // keeps the trusted-time fields above.
+  uint32_t activeSeconds() const { return activeTotal; }
+  uint16_t countedTurns() const { return turns; }
 
  private:
   static uint16_t clampProgress(int progressBp);
 
-  uint32_t anchorMs = 0;
   int64_t anchorEpoch = 0;
   int64_t startEpoch = 0;
+  uint32_t anchorMs = 0;
   uint32_t duration = 0;
+  uint32_t activeTotal = 0;
+  uint16_t turns = 0;
   uint16_t anchorProgress = 0;
   uint16_t startProgress = 0;
   uint16_t endProgress = 0;

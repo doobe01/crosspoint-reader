@@ -119,4 +119,39 @@ TEST(ReaderSession, MonotonicElapsedHandlesMillisWrap) {
   EXPECT_EQ(session.durationSeconds(), 5u);
 }
 
+TEST(ReaderSession, CountsActiveSecondsAndTurnsWithoutTrustedClock) {
+  ReaderSession session;
+  anchor(session, 1000, 0, 1000);
+  turnAndRender(session, true, true, 6000, 0, 1100);
+  turnAndRender(session, true, true, 13000, 0, 1200);
+  turnAndRender(session, false, true, 20000, 0, 1100);  // backward: not counted
+  turnAndRender(session, true, true, 21500, 0, 1200);   // under two seconds: not counted
+
+  EXPECT_EQ(session.activeSeconds(), 12u);
+  EXPECT_EQ(session.countedTurns(), 2u);
+  EXPECT_EQ(session.durationSeconds(), 0u);
+  EXPECT_FALSE(session.isEmitWorthy());
+}
+
+TEST(ReaderSession, ActiveSecondsMatchDurationWhenClockIsTrusted) {
+  ReaderSession session;
+  anchor(session, 1000, 100, 1000);
+  turnAndRender(session, true, true, 6000, 105, 1100);
+  turnAndRender(session, true, true, 3700000, 3799, 1200);
+
+  EXPECT_EQ(session.activeSeconds(), session.durationSeconds());
+  EXPECT_EQ(session.activeSeconds(), 1805u);
+  EXPECT_EQ(session.countedTurns(), 2u);
+}
+
+TEST(ReaderSession, ResetClearsActiveCounters) {
+  ReaderSession session;
+  anchor(session, 1000, 0, 1000);
+  turnAndRender(session, true, true, 6000, 0, 1100);
+  session.reset();
+
+  EXPECT_EQ(session.activeSeconds(), 0u);
+  EXPECT_EQ(session.countedTurns(), 0u);
+}
+
 }  // namespace

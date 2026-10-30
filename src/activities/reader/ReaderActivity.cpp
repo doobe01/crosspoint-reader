@@ -15,6 +15,7 @@
 #include "CrossPointState.h"
 #include "EpubReaderActivity.h"
 #include "ReaderUtils.h"
+#include "ReadingStatsStore.h"
 #include "RecentBooksStore.h"
 #include "SdCardFontSystem.h"
 #include "XtcReaderActivity.h"
@@ -126,17 +127,25 @@ void ReaderActivity::onExit() {
 void ReaderActivity::prepareForSleep() { flushReaderSession(); }
 
 void ReaderActivity::flushReaderSession() {
-  if (!readerSession.isEmitWorthy() || !pluginevents::anySubscriber(pluginevents::Event::ReaderSession)) {
+  const bool recordStats = readerSession.activeSeconds() >= readingstats::MIN_SESSION_SECONDS;
+  const bool emitEvent =
+      readerSession.isEmitWorthy() && pluginevents::anySubscriber(pluginevents::Event::ReaderSession);
+  if (!recordStats && !emitEvent) {
     readerSession.reset();
     return;
   }
 
+  // One content hash serves both the on-device record and the plugin event.
   const std::string document = KOReaderDocumentId::calculate(bookPath);
   const bool validDocument =
       document.size() == 32 && std::all_of(document.begin(), document.end(), [](const unsigned char c) {
         return std::isdigit(c) || (c >= 'a' && c <= 'f');
       });
-  if (validDocument) {
+  if (recordStats) {
+    readingstats::recordSession(validDocument ? document : std::string(), readerSession.activeSeconds(),
+                                readerSession.countedTurns(), trustedtime::trustedNow());
+  }
+  if (emitEvent && validDocument) {
     char startTime[24];
     char endTime[24];
     char duration[16];
